@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "spec-version": "1.0"
+  },
+  "configuration-groups": [
+    {
+      "label": "Text FileSet Sink Configuration",
+      "properties": [
+        {
+          "widget-type": "textbox",
+          "label": "FileSet Name",
+          "name": "name"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Field separator",
+          "name": "fieldSeparator"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Output Directory",
+          "name": "outputDir"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "File Name Prefix",
+          "name": "fileNamePrefix"
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Size Threshold (megabytes)",
+          "name": "sizeThreshold",
+          "widget-attributes": {
+            "default": "100"
+          }
+        },
+        {
+          "widget-type": "textbox",
+          "label": "Age Threshold (minutes)",
+          "name": "ageThreshold",
+          "widget-attributes": {
+            "default": "60"
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "schema",
+      "widget-type": "schema",
+      "widget-attributes": {
+        "schema-types": [
+          "boolean",
+          "int",
+          "long",
+          "float",
+          "double",
+          "bytes",
+          "string"
+        ],
+        "schema-default-type": "string"
+      }
+    }
+  ]
+}
