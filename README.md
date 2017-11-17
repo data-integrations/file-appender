@@ -1,3 +1,14 @@
+# HDFS File Appender Sink
+
+[![cm-available](https://cdap-users.herokuapp.com/assets/cm-available.svg)](https://docs.cask.co/cdap/current/en/integrations/cask-market.html)
+![cdap-batch-sink](https://cdap-users.herokuapp.com/assets/cdap-batch-sink.svg)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Join CDAP community](https://cdap-users.herokuapp.com/badge.svg?t=wrangler)](https://cdap-users.herokuapp.com?t=1)
+
+
+The [HFDS File Appender Sink](docs/FileAppender-batchsink.md) writes to a CDAP FileSet in text format. HDFS append must be enabled for this to work. One line is written for each record sent to the sink.
+
+
 Build
 -----
 To build your plugins:
