@@ -27,8 +27,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <spark.version>1.6.1</spark.version>
-    <cdap.version>4.3.0</cdap.version>
+    <cdap.version>5.1.2</cdap.version>
     <hadoop.version>2.3.0</hadoop.version>
     <!-- properties for script build step that creates the config files for the artifacts -->
     <widgets.dir>widgets</widgets.dir>
@@ -53,11 +52,7 @@
       <groupId>co.cask.cdap</groupId>
       <artifactId>cdap-etl-api</artifactId>
       <version>${cdap.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>co.cask.cdap</groupId>
-      <artifactId>cdap-etl-api-spark</artifactId>
-      <version>${cdap.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>co.cask.cdap</groupId>
@@ -70,46 +65,6 @@
       <artifactId>hydrator-test</artifactId>
       <version>${cdap.version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_2.10</artifactId>
-      <version>${spark.version}</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>log4j</groupId>
-          <artifactId>log4j</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-client</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.esotericsoftware.reflectasm</groupId>
-          <artifactId>reflectasm</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.curator</groupId>
-          <artifactId>curator-recipes</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.tachyonproject</groupId>
-          <artifactId>tachyon-client</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.scala-lang</groupId>
-          <artifactId>scala-compiler</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.eclipse.jetty.orbit</groupId>
-          <artifactId>javax.servlet</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -241,7 +196,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.14.1</version>
         <configuration>
-          <argLine>-Xmx5000m -Djava.awt.headless=true -XX:MaxPermSize=1024m -XX:+UseConcMarkSweepGC -XX:OnOutOfMemoryError="kill -9 %p" -Djava.net.preferIPv4Stack=true</argLine>
+          <argLine>-Xmx5000m -Djava.awt.headless=true -XX:+UseConcMarkSweepGC -XX:OnOutOfMemoryError="kill -9 %p" -Djava.net.preferIPv4Stack=true</argLine>
           <reuseForks>false</reuseForks>
           <reportFormat>plain</reportFormat>
           <systemPropertyVariables>
@@ -288,8 +243,8 @@
         <version>1.0.0-SNAPSHOT</version>
         <configuration>
           <cdapArtifacts>
-            <parent>system:cdap-data-pipeline[4.0.0,5.0.0-SNAPSHOT)</parent>
-            <parent>system:cdap-data-streams[4.0.0,5.0.0-SNAPSHOT)</parent>
+            <parent>system:cdap-data-pipeline[4.0.0,6.0.0-SNAPSHOT)</parent>
+            <parent>system:cdap-data-streams[4.0.0,6.0.0-SNAPSHOT)</parent>
           </cdapArtifacts>
         </configuration>
         <executions>
