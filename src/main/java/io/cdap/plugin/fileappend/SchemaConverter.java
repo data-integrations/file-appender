@@ -14,11 +14,11 @@
  * the License.
  */
 
-package co.cask.plugin.fileappend;
+package io.cdap.plugin.fileappend;
 
-import co.cask.cdap.api.data.schema.Schema;
-import co.cask.cdap.api.data.schema.UnsupportedTypeException;
-import co.cask.cdap.internal.io.ReflectionSchemaGenerator;
+import io.cdap.cdap.api.data.schema.Schema;
+import io.cdap.cdap.api.data.schema.UnsupportedTypeException;
+import io.cdap.cdap.internal.io.ReflectionSchemaGenerator;
 
 import java.lang.reflect.Type;
 import java.util.Iterator;

@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.plugin.fileappend;
+package io.cdap.plugin.fileappend;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
