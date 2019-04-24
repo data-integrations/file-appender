@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016 Cask Data, Inc.
+ * Copyright © 2016-17 Cask Data, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -16,6 +16,7 @@
 
 package co.cask.plugin.fileappend;
 
+import co.cask.cdap.api.artifact.ArtifactSummary;
 import co.cask.cdap.api.data.format.StructuredRecord;
 import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.dataset.lib.FileSet;
@@ -25,12 +26,12 @@ import co.cask.cdap.datapipeline.SmartWorkflow;
 import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.mock.batch.MockSource;
 import co.cask.cdap.etl.mock.test.HydratorTestBase;
-import co.cask.cdap.etl.proto.Engine;
+import co.cask.cdap.etl.api.Engine;
 import co.cask.cdap.etl.proto.v2.ETLBatchConfig;
 import co.cask.cdap.etl.proto.v2.ETLPlugin;
 import co.cask.cdap.etl.proto.v2.ETLStage;
+import co.cask.cdap.proto.ProgramRunStatus;
 import co.cask.cdap.proto.artifact.AppRequest;
-import co.cask.cdap.proto.artifact.ArtifactSummary;
 import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.ArtifactId;
 import co.cask.cdap.proto.id.NamespaceId;
@@ -40,10 +41,7 @@ import co.cask.cdap.test.TestConfiguration;
 import co.cask.cdap.test.WorkflowManager;
 import com.google.common.collect.ImmutableMap;
 import org.apache.twill.filesystem.Location;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -78,7 +76,8 @@ public class PipelineTest extends HydratorTestBase {
   }
 
   // ignored until MockSource has some way of controlling the number of splits
-  //@Test
+  @Ignore
+  @Test
   public void testSink() throws Exception {
     Schema inputSchema = Schema.recordOf("test",
                                          Schema.Field.of("name", Schema.of(Schema.Type.STRING)),
@@ -131,7 +130,7 @@ public class PipelineTest extends HydratorTestBase {
 
     WorkflowManager workflowManager = appManager.getWorkflowManager(SmartWorkflow.NAME);
     workflowManager.start(runtimeArgs);
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRun(ProgramRunStatus.COMPLETED, 4, TimeUnit.MINUTES);
 
     // check the pipeline output
     DataSetManager<FileSet> outputManager = getDataset(outputName);
@@ -162,7 +161,7 @@ public class PipelineTest extends HydratorTestBase {
     Assert.assertEquals(expected, actual);
 
     workflowManager.start(runtimeArgs);
-    workflowManager.waitForFinish(4, TimeUnit.MINUTES);
+    workflowManager.waitForRuns(ProgramRunStatus.COMPLETED, 2, 4, TimeUnit.MINUTES);
 
     Set<String> filesSecondRun = new HashSet<>();
     expected = ImmutableMap.of("samuel,wallet", 2, "dwayne,rock", 2, "christopher,cowbell", 2);
