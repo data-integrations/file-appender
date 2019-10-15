@@ -15,10 +15,7 @@
         {
           "widget-type": "textbox",
           "label": "Field separator",
-          "name": "fieldSeparator",
-          "widget-attributes": {
-            "default": ","
-          }
+          "name": "fieldSeparator"
         },
         {
           "widget-type": "textbox",
