@@ -27,8 +27,8 @@ import io.cdap.cdap.api.dataset.DatasetProperties;
 import io.cdap.cdap.api.dataset.lib.FileSet;
 import io.cdap.cdap.api.dataset.lib.FileSetProperties;
 import io.cdap.cdap.api.dataset.lib.KeyValue;
-import io.cdap.cdap.api.plugin.PluginConfig;
 import io.cdap.cdap.etl.api.Emitter;
+import io.cdap.cdap.etl.api.FailureCollector;
 import io.cdap.cdap.etl.api.PipelineConfigurer;
 import io.cdap.cdap.etl.api.batch.BatchRuntimeContext;
 import io.cdap.cdap.etl.api.batch.BatchSink;
@@ -37,11 +37,9 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Writes to files in a directory. Will append to existing files until they are larger or older than configurable
@@ -53,131 +51,74 @@ import javax.annotation.Nullable;
   "than configurable thresholds.")
 public class FileAppenderSink extends BatchSink<StructuredRecord, NullWritable, Text> {
   public static final String NAME = "FileAppender";
-  private final Conf config;
+  private final FileAppenderSinkConfig config;
   private Schema outputSchema;
 
-  /**
-   * Config properties for the plugin.
-   */
-  public static class Conf extends PluginConfig {
-
-    @Description("The name of the FileSet to write to.")
-    private String name;
-
-    @Nullable
-    @Description("Optional directory within the FileSet to write to.")
-    private String outputDir;
-
-    @Description("The prefix to use for all files in the FileSet.")
-    private String fileNamePrefix;
-
-    @Nullable
-    @Description("Rotate files after they are this large (in mb). 0 means no limit. Defaults to 100.")
-    private Long sizeThreshold;
-
-    @Nullable
-    @Description("Rotate files after they are this old (in minutes). 0 means no limit. Defaults to 60.")
-    private Long ageThreshold;
-
-    @Nullable
-    @Description("The separator to use to join input record fields together. Defaults to ','.")
-    private String fieldSeparator;
-
-    @Nullable
-    @Description("The schema of the FileSet.")
-    private String schema;
-
-    public Conf() {
-      fieldSeparator = ",";
-      sizeThreshold = 100L;
-      ageThreshold = 60L;
-    }
-
-    public void validate() {
-      if (sizeThreshold < 0) {
-        throw new IllegalArgumentException("sizeThreshold must be at least 0.");
-      }
-      if (ageThreshold < 0) {
-        throw new IllegalArgumentException("ageThreshold must be at least 0.");
-      }
-    }
-  }
-
-  public FileAppenderSink(Conf config) {
+  public FileAppenderSink(FileAppenderSinkConfig config) {
     this.config = config;
   }
 
   @Override
   public void configurePipeline(PipelineConfigurer pipelineConfigurer) {
-    config.validate();
-    // TODO: validate input schema
+    FailureCollector failureCollector = pipelineConfigurer.getStageConfigurer().getFailureCollector();
+    config.validate(failureCollector);
     Schema inputSchema = pipelineConfigurer.getStageConfigurer().getInputSchema();
+    config.validateOutputSchema(failureCollector, inputSchema);
+    // check collector to make sure both schemas are valid
+    failureCollector.getOrThrowException();
+
     Schema outputSchema = inputSchema;
-    if (config.schema != null) {
-      try {
-        outputSchema = Schema.parseJson(config.schema);
-      } catch (IOException e) {
-        throw new IllegalArgumentException("Could not parse schema: " + e.getMessage(), e);
-      }
+    Schema configuredSchema = config.getParsedSchema();
+    if (configuredSchema != null) {
+      outputSchema = configuredSchema;
     }
 
     String hiveSchema = null;
     if (outputSchema != null) {
-
-      if (inputSchema != null) {
-        for (Schema.Field outputField : outputSchema.getFields()) {
-          Schema.Field inField = inputSchema.getField(outputField.getName());
-          if (inField == null) {
-            throw new IllegalArgumentException(
-              String.format("Field '%s' is not in the input schema.", outputField.getName()));
-          } else if (!inField.getSchema().equals(outputField.getSchema())) {
-            throw new IllegalArgumentException(
-              String.format("Schema for field '%s' does not match the schema of the input field (%s)",
-                            outputField.getName(), inField.getSchema()));
-          }
-        }
-      }
-
       SchemaConverter schemaConverter = new SchemaConverter(true);
       try {
         hiveSchema = schemaConverter.toHiveSchema(outputSchema);
       } catch (UnsupportedTypeException e) {
-        throw new IllegalArgumentException("Could not generate Hive schema: " + e.getMessage(), e);
+        failureCollector.addFailure("Could not generate Hive schema: " + e.getMessage(), null)
+          .withConfigProperty(FileAppenderSinkConfig.SCHEMA)
+          .withStacktrace(e.getStackTrace());
       }
     }
+
+    failureCollector.getOrThrowException();
 
     // this is only here for unit tests, since ChecksumFileSystem doesn't support append
     String isLocalStr = config.getProperties().getProperties().get(AppendOutputFormat.IS_LOCAL_MODE);
     DatasetProperties properties = FileSetProperties.builder()
       .setInputFormat(TextInputFormat.class)
       .setOutputFormat(AppendOutputFormat.class)
-      .setBasePath(config.outputDir)
+      .setBasePath(config.getOutputDir())
       .setEnableExploreOnCreate(true)
       .setExploreFormat("text")
       .setExploreSchema(hiveSchema == null ? "text string" : hiveSchema)
-      .setExploreFormatProperty("delimiter", config.fieldSeparator)
-      .setOutputProperty(AppendOutputFormat.FILE_PREFIX, config.fileNamePrefix)
-      .setOutputProperty(AppendOutputFormat.SIZE_THRESHOLD, String.valueOf(config.sizeThreshold * 1024 * 1024))
-      .setOutputProperty(AppendOutputFormat.AGE_THRESHOLD_SEC, String.valueOf(config.ageThreshold))
+      .setExploreFormatProperty("delimiter", config.getFieldSeparator())
+      .setOutputProperty(AppendOutputFormat.FILE_PREFIX, config.getFileNamePrefix())
+      .setOutputProperty(AppendOutputFormat.SIZE_THRESHOLD, String.valueOf(config.getSizeThreshold() * 1024 * 1024))
+      .setOutputProperty(AppendOutputFormat.AGE_THRESHOLD_SEC, String.valueOf(config.getAgeThreshold()))
       .setOutputProperty(AppendOutputFormat.IS_LOCAL_MODE, isLocalStr)
       .build();
-    pipelineConfigurer.createDataset(config.name, FileSet.class, properties);
+    pipelineConfigurer.createDataset(config.getName(), FileSet.class, properties);
   }
 
   @Override
   public void prepareRun(final BatchSinkContext context) throws Exception {
-    FileSet fileSet = context.getDataset(config.name);
+    FileSet fileSet = context.getDataset(config.getName());
     Map<String, String> args = new HashMap<>();
     args.put(FileSetProperties.OUTPUT_PROPERTIES_PREFIX + AppendOutputFormat.OUTPUT_DIR,
              fileSet.getBaseLocation().toURI().getPath());
     args.put(FileSetProperties.OUTPUT_PROPERTIES_PREFIX + AppendOutputFormat.START_TIME,
              String.valueOf(context.getLogicalStartTime()));
-    context.addOutput(Output.ofDataset(config.name, args));
+    context.addOutput(Output.ofDataset(config.getName(), args));
   }
 
   @Override
   public void initialize(BatchRuntimeContext context) throws Exception {
-    outputSchema = config.schema == null ? null : Schema.parseJson(config.schema);
+    outputSchema = config.getParsedSchema();
   }
 
   @Override
@@ -198,7 +139,7 @@ public class FileAppenderSink extends BatchSink<StructuredRecord, NullWritable, 
       if (outputSchema != null && outputSchema.getField(fieldName) == null) {
         continue;
       }
-      joinedFields.append(config.fieldSeparator);
+      joinedFields.append(config.getFieldSeparator());
       val = input.get(fieldName);
       joinedFields.append(val == null ? "" : val);
     }
